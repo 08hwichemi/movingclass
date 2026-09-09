@@ -27,22 +27,39 @@ Netlify 대신 **GitHub Pages**에서 서비스하기 위한 배포용 저장소
 
 저장소 이름을 `movingclass`가 아닌 다른 이름으로 만들었다면 `404.html` 안의 `REPO` 값만 그 이름으로 바꿔주세요.
 
-## Supabase 설정에서 같이 바꿔야 할 것
+## Supabase 설정에서 할 일
 
 앱이 붙는 Supabase 프로젝트: `sskfshlefbhniiqmdydd`
 
-- **Authentication → URL Configuration**
-  - Site URL: `https://<깃허브아이디>.github.io/movingclass/`
-  - Redirect URLs 에도 위 주소 추가
-  - Netlify 주소는 완전히 정리한 뒤에 지우세요.
-- 데이터 조회(REST)는 별도 CORS 설정 없이 어느 도메인에서든 동작하므로, 표 데이터는 그대로 잘 나옵니다.
-- 앱이 사용하는 테이블: `attendance`, `chats`, `classes`, `classrequests`, `settings`, `students`, `teachers`
+**도메인을 옮기면서 Supabase에서 바꿀 설정은 없습니다.**
 
-## 보안 참고
+- 이 앱은 Supabase Auth를 사용하지 않습니다. 학번·이름·비밀번호로 `students` / `teachers`
+  테이블을 직접 조회하는 자체 로그인 방식이라, Auth의 Site URL / Redirect URLs 설정과 무관합니다.
+- 데이터 조회(REST)는 도메인 제한이 없어 새 주소에서 그대로 동작합니다.
+  (GitHub Pages 주소에서 7개 테이블 전부 정상 응답 확인)
+- 실시간 갱신(Realtime, `postgres_changes`)도 도메인별 설정이 없어 그대로 동작합니다.
 
-번들 안에 Supabase 주소와 **publishable key**가 들어 있습니다. 이 키는 원래 공개되는 것이 정상이며,
-실제 데이터 보호는 각 테이블의 **RLS(Row Level Security) 정책**이 담당합니다.
-저장소를 Public으로 만들기 전에 위 7개 테이블에 RLS가 켜져 있고 정책이 올바른지 한 번 확인하는 것을 권합니다.
+앱이 사용하는 테이블: `attendance`, `chats`, `classes`, `classrequests`, `settings`, `students`, `teachers`
+
+## ⚠️ 보안 점검 필요 (도메인 이전과 무관하게 원래부터 있던 사항)
+
+번들에 들어 있는 Supabase publishable key는 공개되는 것이 정상이며, 실제 데이터 보호는
+각 테이블의 **RLS(Row Level Security) 정책**이 담당합니다.
+
+그런데 현재 이 키만으로 로그인 없이 아래 테이블 전체를 읽을 수 있는 상태입니다:
+
+| 테이블 | 익명 읽기 | 행 수 |
+| --- | --- | --- |
+| `students` | 가능 | 155 |
+| `teachers` | 가능 | 2 |
+| `attendance` | 가능 | 2022 |
+| `chats` | 가능 | 49 |
+| `classes` | 가능 | 6 |
+| `settings` | 가능 | 1 |
+
+즉 주소만 아는 사람은 누구나 학생 155명의 명부와 출결 기록을 조회할 수 있습니다.
+Netlify에서도 동일했던 상태라 이번 이전으로 새로 생긴 문제는 아니지만,
+학생 개인정보가 걸려 있으므로 Supabase 대시보드에서 각 테이블의 RLS 정책을 점검하시기를 권합니다.
 
 ## 앱 내용을 수정하려면
 
