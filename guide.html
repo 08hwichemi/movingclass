@@ -152,7 +152,7 @@
     .page { margin: 0; border-radius: 0; padding: 20px 16px 24px; box-shadow: none; }
     .head { flex-direction: column; align-items: stretch; }
     h1 { font-size: 23px; }
-    .groups, .how { grid-template-columns: 1fr; }
+    .groups, .how, .os { grid-template-columns: 1fr; }
     .shot { max-width: 180px; margin: 4px auto 0; }
     .qr { display: none; }
     .desc, .steps .d { font-size: 13.5px; }
@@ -163,13 +163,48 @@
   .open-app { margin-top: 6px; display: block; text-align: center; background: var(--green); color: #fff;
               font-weight: 700; font-size: 16px; padding: 13px; border-radius: 10px; text-decoration: none; }
 
+
+  /* 0. 앱 설치 — 카톡 링크로 열면 카톡 안 브라우저에서 앱이 뜬다. 홈 화면에 먼저 깐다. */
+  .install { border: 2px solid var(--green); border-radius: 12px; padding: 10px 12px 12px; margin-top: 4px; }
+  .install .why { font-size: 12.5px; color: var(--sub); margin-bottom: 8px; }
+  .kakao { display: none; background: #FEF3C7; border: 1px solid #F5D46B; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+  .kakao.on { display: block; }
+  .kakao .kt { font-weight: 700; color: #854D0E; font-size: 14px; margin-bottom: 6px; }
+  .bigbtn { display: block; width: 100%; text-align: center; font-family: inherit; font-weight: 700; font-size: 15px;
+            padding: 12px; border-radius: 10px; border: 0; text-decoration: none; cursor: pointer;
+            background: var(--green); color: #fff; }
+  .bigbtn.sub { background: #fff; color: var(--green-ink); border: 1.5px solid var(--green); margin-top: 6px; }
+  .copyrow { display: flex; gap: 6px; margin-top: 6px; }
+  .copyrow input { flex: 1; min-width: 0; font-family: inherit; font-size: 13px; padding: 9px 10px;
+                   border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #fff; }
+  .copyrow button { flex: none; font-family: inherit; font-weight: 700; font-size: 13px; padding: 0 14px;
+                    border-radius: 8px; border: 0; background: var(--green-ink); color: #fff; cursor: pointer; }
+  .copied { font-size: 12px; color: var(--green-ink); font-weight: 700; margin-top: 4px; min-height: 1em; }
+  .os { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .os > div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: #fff; }
+  .os > div.mine { border: 2px solid var(--green); background: var(--green-light); }
+  .os .ot { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .os .ot small { font-weight: 500; font-size: 11.5px; color: var(--mute); margin-left: 4px; }
+  .os ol { padding-left: 18px; font-size: 13px; color: var(--ink); display: grid; gap: 3px; }
+  .os .ico { display: inline-block; font-weight: 700; border: 1px solid var(--line); border-radius: 5px;
+             padding: 0 5px; background: #fff; font-size: 12px; }
+  .install .after { margin-top: 8px; font-size: 12.5px; background: var(--green-light); border-radius: 8px; padding: 7px 10px; }
+  .only-print { display: none; }
+  .mini { margin-top: 4px; border: 1.5px solid var(--green); border-radius: 9px; padding: 5px 10px; font-size: 12px; }
+  .mini b.t { color: var(--green-ink); margin-right: 6px; }
+  .os > div.mine { order: -1; }   /* 내 기기 설명을 위로 */
+  @media (max-width: 640px) { .os { grid-template-columns: 1fr; } }
+
   /* 인쇄: A4 한 장 */
   @page { size: A4; margin: 0; }
   @media print {
     body { background: #fff; font-size: 12.5px; line-height: 1.45; }
     .page { width: 210mm; height: 297mm; max-width: none; margin: 0; border-radius: 0; box-shadow: none;
-            padding: 10mm 12mm 8mm; overflow: hidden; }
-    .only-web { display: none !important; }
+            padding: 8mm 12mm 7mm; overflow: hidden; }
+    .only-web, .install-web { display: none !important; }
+    .only-print { display: block; }
+    h2 { margin: 8px 0 5px; }
+    .notes { margin-top: 6px; }
   }
 </style>
 </head>
@@ -187,6 +222,53 @@
       <div class="v">10. 6.(화) 오전 9시 ~<br><em>10. 7.(수) 오전 10시까지</em></div>
     </div>
   </header>
+
+  <!-- 0. 먼저 앱 설치 (화면에서만 크게. 종이에는 한 줄 요약) -->
+  <section class="install-web">
+  <h2><span class="no">0</span>먼저 앱 설치하기 <small>처음 한 번만 · 1분</small></h2>
+  <div class="install">
+    <p class="why">이동수업 내내 매 교시 출석에 씁니다. <b>홈 화면에 부광고ON 앱을 깔아두고 아이콘으로 실행</b>하세요.
+      카카오톡에서 링크를 눌러 열면 카톡 안의 창에서 열려 설치가 안 되고 로그인도 자주 풀립니다.</p>
+
+    <div class="kakao" id="kakao">
+      <div class="kt">⚠️ 지금 카카오톡 안에서 보고 있어요</div>
+      <a class="bigbtn" id="openExternal" href="#">Safari·Chrome으로 이 안내문 열기</a>
+      <p style="font-size:12px;color:#854D0E;margin-top:6px">안 열리면 아래 [복사]를 누르고 <b id="browserName">Safari 또는 Chrome</b>을 직접 열어 주소창에 붙여넣으세요.</p>
+    </div>
+
+    <div class="copyrow">
+      <input id="appUrl" readonly value="https://08hwichemi.github.io/movingclass/" aria-label="부광고ON 주소">
+      <button type="button" id="copyBtn">복사</button>
+    </div>
+    <div class="copied" id="copied"></div>
+
+    <div class="os">
+      <div id="osIos">
+        <div class="ot">🍎 iPhone <small>Safari에서</small></div>
+        <ol>
+          <li>Safari 주소창에 붙여넣고 이동 (또는 아래 [부광고ON 열기])</li>
+          <li>화면 아래 <span class="ico">공유 ⬆︎</span> 단추</li>
+          <li>목록을 내려 <span class="ico">홈 화면에 추가</span></li>
+          <li>오른쪽 위 <span class="ico">추가</span></li>
+        </ol>
+      </div>
+      <div id="osAnd">
+        <div class="ot">🤖 갤럭시 등 Android <small>Chrome에서</small></div>
+        <ol>
+          <li>Chrome 주소창에 붙여넣고 이동 (또는 아래 [부광고ON 열기])</li>
+          <li>오른쪽 위 <span class="ico">⋮</span> 메뉴</li>
+          <li><span class="ico">앱 설치</span> 또는 <span class="ico">홈 화면에 추가</span></li>
+          <li><span class="ico">설치</span>(추가) 누르기</li>
+        </ol>
+        <p style="font-size:11.5px;color:var(--mute);margin-top:4px">삼성 인터넷이면 아래 <span class="ico">≡</span> → 현재 페이지 추가 → 홈 화면</p>
+      </div>
+    </div>
+    <a class="bigbtn sub" href="https://08hwichemi.github.io/movingclass/">부광고ON 열기 (설치할 화면)</a>
+    <div class="after">✅ 설치가 끝나면 이 안내문을 닫고, <b>홈 화면의 부광고ON 아이콘</b>으로 실행해 아래 <b>3. 신청 방법</b>대로 하세요.</div>
+  </div>
+  </section>
+
+  <div class="only-print mini"><b class="t">📲 먼저 앱 설치</b>QR로 연 화면에서 iPhone은 <b>공유 ⬆︎ → 홈 화면에 추가</b>, Android는 <b>⋮ → 앱 설치(홈 화면에 추가)</b>. 그다음부터는 홈 화면의 <b>부광고ON</b> 아이콘으로 실행하세요.</div>
 
   <h2><span class="no">1</span>반별 안내 <small>총 5개 반</small></h2>
   <div class="groups">
@@ -245,8 +327,8 @@
   <h2><span class="no">3</span>신청 방법 <small>휴대폰으로 5분이면 끝나요</small></h2>
   <div class="how">
     <ol class="steps">
-      <li><span class="n">1</span><div><span class="t">부광고ON 접속</span>
-        <span class="d">QR코드를 찍거나 주소창에 <b>08hwichemi.github.io/movingclass</b> 입력 → <span class="btn">학생</span></span></div></li>
+      <li><span class="n">1</span><div><span class="t">부광고ON 실행</span>
+        <span class="d">홈 화면의 <b>부광고ON</b> 아이콘 (설치 전이면 QR코드 또는 <b>08hwichemi.github.io/movingclass</b>) → <span class="btn">학생</span></span></div></li>
       <li><span class="n">2</span><div><span class="t">처음 로그인</span>
         <span class="d">학번(예: 30101)과 이름 입력, 비밀번호 <code>111111</code> → <span class="btn">학생 접속하기</span></span></div></li>
       <li><span class="n">3</span><div><span class="t">내 비밀번호 설정</span>
@@ -280,5 +362,31 @@
 
   <p class="foot">부광고등학교 3학년부</p>
 </main>
+
+<script>
+(function () {
+  var APP = 'https://08hwichemi.github.io/movingclass/';
+  var ua = navigator.userAgent || '';
+  var isKakao = /KAKAOTALK/i.test(ua);
+  var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAnd = /Android/i.test(ua);
+  // 내 기기 쪽 설명을 강조
+  if (isIOS) document.getElementById('osIos').className = 'mine';
+  if (isAnd) document.getElementById('osAnd').className = 'mine';
+  // 카카오톡 안 브라우저면 바깥 브라우저로 내보내는 단추를 띄운다
+  if (isKakao) {
+    document.getElementById('kakao').className = 'kakao on';
+    document.getElementById('browserName').textContent = isIOS ? 'Safari' : (isAnd ? 'Chrome' : 'Safari 또는 Chrome');
+    document.getElementById('openExternal').href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href.split('#')[0]);
+  }
+  // 복사: 카톡 안 창에서는 clipboard API 가 막힐 수 있어 옛 방식으로도 한 번 더
+  var input = document.getElementById('appUrl'), msg = document.getElementById('copied');
+  document.getElementById('copyBtn').addEventListener('click', function () {
+    var done = function () { msg.textContent = '복사했습니다. ' + (isIOS ? 'Safari' : 'Chrome') + ' 주소창에 붙여넣으세요.'; };
+    var old = function () { input.focus(); input.select(); input.setSelectionRange(0, 999); try { document.execCommand('copy') ? done() : (msg.textContent = '길게 눌러 직접 복사해주세요.'); } catch (e) { msg.textContent = '길게 눌러 직접 복사해주세요.'; } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(APP).then(done, old); else old();
+  });
+})();
+</script>
 </body>
 </html>
