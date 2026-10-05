@@ -214,6 +214,35 @@
     h2 { margin: 8px 0 5px; }
     .notes { margin-top: 6px; }
   }
+
+  /* B4 인쇄 (주소 뒤에 ?paper=b4): 설치 단계까지 종이에 싣는다.
+     257×364mm 는 JIS B4 — 한국 복사기의 'B4' 가 이 크기다. 종이 크기(@page)는 스크립트가 바꾼다.
+     단추·복사 칸처럼 종이에서 못 누르는 것은 빼고, 1번 단계는 QR 안내(.prt)로 바꿔 보여준다. */
+  .prt { display: none; }
+  @media print {
+    html.b4 body { font-size: 13px; }
+    html.b4 .page { width: 257mm; height: 364mm; padding: 8mm 12mm 7mm; }
+    html.b4 h1 { font-size: 28px; }
+    html.b4 .lead, html.b4 .desc, html.b4 .steps .d, html.b4 .notes { font-size: 13px; }
+    html.b4 .steps .t { font-size: 14.5px; }
+    html.b4 .install-web { display: block !important; }
+    html.b4 .only-print.mini { display: none; }
+    html.b4 .kakao, html.b4 .copyrow, html.b4 .copied, html.b4 .bigbtn { display: none !important; }
+    html.b4 .scr { display: none; }
+    html.b4 .prt { display: inline; }
+    html.b4 .install .why, html.b4 .install .after, html.b4 .oldapp, html.b4 .os ol { font-size: 13px; }
+    html.b4 .os .ot { font-size: 14.5px; }
+    html.b4 .os .ico { font-size: 12.5px; }
+    /* 종이는 자리가 빠듯하다: 설명과 파란 앱 안내를 나란히, 설치 뒤 안내는 3번이 대신한다 */
+    html.b4 h2 { margin: 6px 0 4px; }
+    html.b4 .install-top { display: grid; grid-template-columns: 1.1fr 1fr; gap: 8px; align-items: stretch; margin-bottom: 8px; }
+    html.b4 .install .why, html.b4 .oldapp { margin-bottom: 0; }
+    html.b4 .install .after { display: none; }
+    html.b4 .install { padding: 8px 10px 10px; }
+    html.b4 .notes { margin-top: 4px; padding: 5px 14px; }
+    html.b4 .install-top { margin-bottom: 6px; }
+    html.b4 .foot { margin-top: 4px; }
+  }
 </style>
 </head>
 <body>
@@ -235,12 +264,14 @@
   <section class="install-web">
   <h2><span class="no">0</span>먼저 앱 설치하기 <small>처음 한 번만 · 1분</small></h2>
   <div class="install">
+    <div class="install-top">
     <p class="why">이동수업 내내 매 교시 출석에 씁니다. <b>홈 화면에 부광고ON 앱을 깔아두고 아이콘으로 실행</b>하세요.
       카카오톡에서 링크를 눌러 열면 카톡 안의 창에서 열려 설치가 안 되고 로그인도 자주 풀립니다.</p>
 
     <div class="oldapp">
       <span class="sw blue">N</span><span class="arrow">→</span><span class="sw yellow">N</span>
       <div><b>예전에 설치한 파란색 부광고ON 앱이 있으면 먼저 삭제</b>하고,<br>아래 순서대로 <b>노란색 아이콘</b>의 새 앱으로 다시 설치하세요.</div>
+    </div>
     </div>
 
     <div class="kakao" id="kakao">
@@ -259,7 +290,7 @@
       <div id="osIos">
         <div class="ot">🍎 iPhone <small>Safari에서</small></div>
         <ol>
-          <li>Safari 주소창에 붙여넣고 이동 (또는 아래 [부광고ON 열기])</li>
+          <li><span class="scr">Safari 주소창에 붙여넣고 이동 (또는 아래 [부광고ON 열기])</span><span class="prt">카메라로 아래 QR 을 찍어 <b>Safari</b> 로 열기 (또는 Safari 주소창에 <b>08hwichemi.github.io/movingclass</b> 입력)</span></li>
           <li>화면 아래 <span class="ico">공유 ⬆︎</span> 단추</li>
           <li>목록을 내려 <span class="ico">홈 화면에 추가</span></li>
           <li>오른쪽 위 <span class="ico">추가</span></li>
@@ -268,7 +299,7 @@
       <div id="osAnd">
         <div class="ot">🤖 갤럭시 등 Android <small>Chrome에서</small></div>
         <ol>
-          <li>Chrome 주소창에 붙여넣고 이동 (또는 아래 [부광고ON 열기])</li>
+          <li><span class="scr">Chrome 주소창에 붙여넣고 이동 (또는 아래 [부광고ON 열기])</span><span class="prt">카메라로 아래 QR 을 찍어 <b>Chrome</b> 으로 열기 (또는 Chrome 주소창에 <b>08hwichemi.github.io/movingclass</b> 입력)</span></li>
           <li>오른쪽 위 <span class="ico">⋮</span> 메뉴</li>
           <li><span class="ico">앱 설치</span> 또는 <span class="ico">홈 화면에 추가</span></li>
           <li><span class="ico">설치</span>(추가) 누르기</li>
@@ -379,6 +410,13 @@
 <script>
 (function () {
   var APP = 'https://08hwichemi.github.io/movingclass/';
+  // B4 인쇄 모드 (?paper=b4). 종이 크기는 CSS 의 @page 로만 정해지는데 html 클래스로는 못 고르므로 여기서 덧붙인다.
+  if (/[?&]paper=b4\b/.test(location.search)) {
+    document.documentElement.className += ' b4';
+    var ps = document.createElement('style');
+    ps.textContent = '@page { size: 257mm 364mm; margin: 0; }';
+    document.head.appendChild(ps);
+  }
   var ua = navigator.userAgent || '';
   var isKakao = /KAKAOTALK/i.test(ua);
   var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
