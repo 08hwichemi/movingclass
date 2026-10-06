@@ -185,7 +185,10 @@
   .quick h2{font-family:var(--serif);font-size:27px;margin:0 0 4px}
   .quick .qsub{margin:0 0 18px;color:var(--muted);font-size:15px}
   .qcols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+  .qcols.four{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+  @media (max-width:900px){.qcols.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media (max-width:700px){.qcols{grid-template-columns:1fr}}
+  @media (max-width:560px){.qcols.four{grid-template-columns:1fr}}
   .qcol{display:flex;flex-direction:column;gap:10px;min-width:0}
   .qcol .shot{max-width:100%}
   .qt{font-size:17.5px;line-height:1.6}
@@ -218,6 +221,8 @@
   .onepage .qnote{margin-top:12px;font-size:14.5px}
   @media print{
     .qcols{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .qcols.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .onepage .qcols.four .qt{font-size:13.5px}
     .quick{break-inside:avoid}
     details.sec{break-inside:auto}
   }
