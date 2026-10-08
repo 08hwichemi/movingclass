@@ -4,12 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>모의고사 시계</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<script src="./supabase-js.js"></script>   <!-- 앱과 같은 supabase-js (node_modules 의 UMD 빌드를 복사). CDN 에 기대지 않는다 -->
 <style>
 /* ─────────────────────────────────────────────────────────────
    빔 프로젝터용 모의고사 시계(아날로그) + 출석 안내
    수능장처럼 아날로그 시계만 둔다 — 움직이는 숫자 시각·남은 시간은 화면에 없다.
    노트북에서 이 파일을 더블클릭 → 화면을 한 번 클릭(종소리 켜기) → F 키(전체화면)
-   인터넷이 없어도 돌아간다. 시간은 노트북 시계를 따른다.
+   시계·종소리는 인터넷이 없어도 돌아간다. 시간은 노트북 시계를 따른다.
+   출석 안내 칸의 '안 누른 학생 명단'(v100)만 부광고ON 서버를 읽는다 — 교직원 계정으로 한 번 로그인하면
+   기기에 남는다. 안내 시간 동안 30초마다 한 번씩만 받고(실시간 없음), 전원이 누르면 그 교시는 더 안 받는다.
    ───────────────────────────────────────────────────────────── */
 :root{
   --bg:#000; --ink:#F2F2F2; --sub:#C3C8C5; --line:#2A2F2C;
@@ -19,7 +25,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
-  font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR","Segoe UI",system-ui,sans-serif;
+  font-family:"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR","Segoe UI",system-ui,sans-serif;   /* 앱과 같은 글씨체 */
   -webkit-font-smoothing:antialiased;cursor:default;user-select:none}
 
 /* 가로 네 칸: 시계 2칸 · 교시 안내 1칸 · 출석 안내 1칸 */
@@ -66,6 +72,33 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
 #attend .p{font-size:calc(min(8vh,4.1vw) * var(--k));font-weight:900;line-height:1.15;word-break:keep-all}
 #attend .m{font-size:calc(min(8vh,4.1vw) * var(--k));font-weight:900;line-height:1.2;word-break:keep-all}
 #attend .u{font-size:calc(min(4vh,2.2vw) * var(--k));font-weight:800;opacity:.8}
+/* 명단 모드 (서버에서 받았을 때). 위에서 아래로: 작은 머리 · 큰 숫자 · 이름(또는 안내) · 작은 바닥글 */
+#attend.list{justify-content:flex-start;gap:0;padding:2.6vh 1.2vw}
+#attend.list .ic,#attend.list .p,#attend.list .m,#attend.list .u{display:none}
+#attend .hd,#attend .cnt,#attend .names,#attend .hint,#attend .ft{display:none}
+#attend.list .hd{display:block;font-size:calc(min(3.6vh,1.9vw) * var(--k));font-weight:700;opacity:.85;line-height:1.2;margin-bottom:1.2vh}
+#attend.list .cnt{display:block;font-size:calc(min(7vh,3.6vw) * var(--k));font-weight:700;line-height:1.1;margin-bottom:1.6vh;word-break:keep-all}
+#attend.list .cnt b{font-size:1.45em;color:#B3261E;font-weight:700}
+#attend.list .cnt.ok{color:#1B5E32}
+#attend.list .names{display:grid;flex:1;width:100%;gap:.9vh .6vw;align-content:start;overflow:hidden}
+#attend.list .names span{background:rgba(0,0,0,.08);border-radius:1.2vh;padding:.5vh .2vw;font-weight:700;line-height:1.2;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#attend.list .names.c1{grid-template-columns:1fr;font-size:calc(min(6.2vh,3.1vw) * var(--k))}
+#attend.list .names.c2{grid-template-columns:1fr 1fr;font-size:calc(min(4.6vh,2.3vw) * var(--k))}
+#attend.list .names.c3{grid-template-columns:1fr 1fr 1fr;font-size:calc(min(3.4vh,1.65vw) * var(--k))}
+#attend.list .hint{display:flex;flex:1;align-items:center;justify-content:center;font-size:calc(min(6.4vh,3.2vw) * var(--k));font-weight:700;line-height:1.25;word-break:keep-all;text-align:center}
+#attend.list .hint.ok{color:#1B5E32}
+#attend.list .ft{display:block;font-size:calc(min(3.2vh,1.7vw) * var(--k));font-weight:600;opacity:.75;margin-top:1.4vh;line-height:1.3}
+#attend.list .ft .err{color:#B3261E}
+
+/* 로그인 창 — 명단을 읽으려면 교직원 계정이 필요하다. 한 번 들어가면 기기에 남는다 */
+#login{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.7);z-index:10}
+#login.on{display:flex}
+#login form{background:#15181A;border:1px solid #2A2F2C;border-radius:2vh;padding:4vh 3vw;width:min(520px,80vw);display:flex;flex-direction:column;gap:1.6vh}
+#login h2{font-size:3.2vh;font-weight:700;color:var(--ink)}
+#login p{font-size:2vh;color:var(--sub);line-height:1.5}
+#login input{font:inherit;font-size:2.6vh;padding:1.4vh 1.2vw;border-radius:1.2vh;border:1px solid #3A3F3C;background:#0B0D0C;color:var(--ink)}
+#login button{font:inherit;font-size:2.6vh;font-weight:700;padding:1.6vh;border-radius:1.2vh;border:0;background:#40694F;color:#fff;cursor:pointer}
+#login .msg{font-size:2vh;color:var(--end);min-height:2.4vh}
 @keyframes blink{0%,6%,100%{opacity:1}1.5%,4.5%{opacity:.12}}
 
 #help kbd{border:1px solid var(--sub);border-radius:.6vh;padding:0 .7vh;font-family:inherit;color:var(--ink)}
@@ -92,11 +125,27 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
       <div class="p" id="attendPeriod"></div>
       <div class="m">출석을<br>눌러<br>주세요</div>
       <div class="u" id="attendUntil"></div>
+      <div class="hd" id="lsHead"></div>
+      <div class="cnt" id="lsCount"></div>
+      <div class="names" id="lsNames"></div>
+      <div class="hint" id="lsHint"></div>
+      <div class="ft" id="lsFoot"></div>
     </div>
   </div>
 </div>
 
-<div id="help"><kbd>F</kbd> 전체화면 · <kbd>S</kbd> 소리 · <kbd>A</kbd> 출석 안내</div>
+<div id="login">
+  <form id="loginForm">
+    <h2>부광고ON 로그인</h2>
+    <p>출석 안 누른 학생 명단을 띄우려면 교직원 계정이 필요합니다. 한 번 들어가면 이 노트북에 남습니다.<br>건너뛰면(Esc) 시계와 '출석을 눌러 주세요' 안내만 나옵니다.</p>
+    <input id="lgName" placeholder="이름 (예: 면학실시계)" autocomplete="username">
+    <input id="lgPw" type="password" inputmode="numeric" placeholder="비밀번호 (숫자 6자리)" autocomplete="current-password">
+    <div class="msg" id="lgMsg"></div>
+    <button type="submit">로그인</button>
+  </form>
+</div>
+
+<div id="help"><kbd>F</kbd> 전체화면 · <kbd>S</kbd> 소리 · <kbd>A</kbd> 출석 안내 · <kbd>L</kbd> 로그인/로그아웃</div>
 <div id="mute"></div>
 <div id="mode"></div>
 
@@ -128,6 +177,14 @@ const PERIODS = [
 ];
 const ATTEND_MIN = 20;
 
+// 안 누른 학생 명단 (v100). 부광고ON 서버(App.js 와 같은 주소·키)에서 읽는다.
+const SUPABASE_URL = 'https://sskfshlefbhniiqmdydd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_QU_SvXD4sDJTvZbk3MsScw_dJMK-w4V';
+const ATTEND_CLASS = '정시반(웅비관)(4반)';   // 이 시계가 걸린 교실의 반 이름 (classes.fullname). 주소에 ?class=… 로 바꿀 수 있다
+const FIRST_DELAY = 25;    // 종 치고 몇 초 뒤 처음 받을지 — 종 직후는 학생 180명이 몰리는 때라 피한다
+const EVERY = 30;          // 그 뒤 몇 초마다
+const NAMES_MAX = 30;      // 이 인원 이하일 때만 이름을 띄운다 (세 줄에 30명까지 들어간다). 넘으면 숫자와 안내만
+
 const ENDED_SHOW = 60;     // 종료 문구를 몇 초 띄울지
 const WARN_BEFORE = 600;   // 종료 몇 초 전부터 노란색 + 예비 종
 /* ═════════════════════════════════════════════════════════════ */
@@ -140,7 +197,11 @@ const hm = (s) => `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s % 3600 / 60))
 // 화면에는 시험 과목 번호를 쓰지 않는다. 출석 안내의 '3교시'(학교 교시)와 헷갈린다.
 const exams = EXAMS.map((e, i) => ({ ...e, i, r: toSec(e.ready), s: toSec(e.start), e: toSec(e.end) }));
 const lunch = { s: toSec(LUNCH.start), e: toSec(LUNCH.end) };
-const attend = PERIODS.map(p => ({ ...p, f: toSec(p.start), t: toSec(p.start) + ATTEND_MIN * 60 }));
+// 출석 안내 창. 서버 설정(교시 시각 + '빈 시간표 차단' X 칸)을 받으면 요일마다 다르게 둔다 — 화요일 6교시처럼
+// 수업이 없는 교시에는 안내가 뜨지 않는다. 못 받으면 위 PERIODS 로.
+let attendWindows = null;   // { 월: [...], 화: [...] } 또는 null
+const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const windowsFor = (day) => (attendWindows && attendWindows[day]) || PERIODS.map(p => ({ ...p, f: toSec(p.start), t: toSec(p.start) + ATTEND_MIN * 60 }));
 document.getElementById('head').textContent = SCHOOL;
 document.getElementById('head2').textContent = TITLE;
 setTimeout(() => { setFit('head', SCHOOL, 0.05); setFit('head2', TITLE, 0.075); }, 0);
@@ -238,7 +299,98 @@ function stateAt(t) {
 const inExam = (t) => exams.some(x => t >= x.s && t < x.e);
 
 let manualAttend = null;   // null 이면 시간표대로, true/false 면 손으로 정한 것
-function attendAt(t) { return attend.find(a => t >= a.f && t < a.t) || null; }
+function attendAt(t) { return windowsFor(DAYS[nowDate().getDay()]).find(a => t >= a.f && t < a.t) || null; }
+
+// ── 부광고ON 서버: 로그인 · 설정 · 안 누른 학생 명단 ──
+const sb = (window.supabase && SUPABASE_URL) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const attendClass = q.get('class') || ATTEND_CLASS;
+let session = null;
+let poll = null;   // { key, nextReal, done, inFlight, data, err }
+const dateStr = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+async function loadSettings() {
+  if (!sb || !session) return;
+  const { data, error } = await sb.from('settings').select('periods, globalemptyslots').eq('id', 'main').maybeSingle();
+  if (error || !data || !Array.isArray(data.periods)) return;
+  const blocked = Array.isArray(data.globalemptyslots) ? data.globalemptyslots : [];
+  const w = {};
+  for (const day of ['월', '화', '수', '목', '금']) {
+    w[day] = data.periods.map((p, i) => ({ period: `${i + 1}교시`, start: p && p.start, n: i + 1 }))
+      .filter(p => p.start && !blocked.includes(`${day}${p.n}`))
+      .map(p => ({ period: p.period, start: p.start, f: toSec(p.start), t: toSec(p.start) + ATTEND_MIN * 60 }));
+  }
+  attendWindows = w;
+}
+
+async function fetchMissing(a) {
+  const d = nowDate();
+  const { data, error } = await sb.rpc('missing_students', { p_classname: attendClass, p_date: dateStr(d), p_period: a.period });
+  if (error) throw error;
+  return (data || []).map(r => r.name);
+}
+
+// 안내 창이 떠 있는 동안: 종 치고 FIRST_DELAY 초 뒤 처음, 그 뒤 EVERY 초마다. 0명이 되면 그 교시는 끝.
+function pollMissing(t, a) {
+  if (!sb || !session) return;
+  const key = dateStr(nowDate()) + '|' + a.period;
+  if (!poll || poll.key !== key) poll = { key, nextReal: 0, done: false, inFlight: false, data: null, err: null };
+  if (poll.done || poll.inFlight) return;
+  if (t < a.f + FIRST_DELAY) return;
+  if (Date.now() < poll.nextReal) return;
+  poll.inFlight = true;
+  fetchMissing(a).then(names => { poll.data = names; poll.err = null; if (names.length === 0) poll.done = true; })
+    .catch(e => { poll.err = (e && e.message) || String(e); })
+    .finally(() => { poll.inFlight = false; poll.nextReal = Date.now() + EVERY * 1000; lastLayout = ''; });
+}
+
+// 명단 칸 그리기. 받은 것이 없으면(로그인 전·아직 안 받음) 예전처럼 '출석을 눌러 주세요'.
+function renderList(a) {
+  const card = $('attend');
+  const names = poll && poll.key === dateStr(nowDate()) + '|' + a.period ? poll.data : null;
+  if (!names) { card.classList.remove('list'); return; }
+  card.classList.add('list');
+  const n = names.length;
+  $('lsHead').textContent = `📱 ${a.period} 출석`;
+  const cnt = $('lsCount'), box = $('lsNames'), hint = $('lsHint');
+  if (n === 0) {
+    cnt.className = 'cnt ok'; cnt.textContent = '전원 출석 ✓';
+    box.style.display = 'none'; hint.style.display = 'flex'; hint.className = 'hint ok'; hint.innerHTML = '모두<br>눌렀습니다';
+  } else {
+    cnt.className = 'cnt'; cnt.innerHTML = `미출석 <b>${n}</b>명`;
+    if (n > NAMES_MAX) {
+      box.style.display = 'none'; hint.style.display = 'flex'; hint.className = 'hint'; hint.innerHTML = '자리에 앉아<br>폰에서 출석을<br>눌러 주세요';
+    } else {
+      hint.style.display = 'none'; box.style.display = 'grid';
+      box.className = 'names ' + (n <= 6 ? 'c1' : n <= 18 ? 'c2' : 'c3');
+      const key = names.join('|');
+      if (box.dataset.key !== key) { box.dataset.key = key; box.innerHTML = names.map(x => `<span>${x.replace(/[<>&]/g, '')}</span>`).join(''); }
+    }
+  }
+  const err = poll.err ? ` <span class="err">· 명단을 못 받았습니다</span>` : '';
+  $('lsFoot').innerHTML = (n === 0 ? '' : '폰에서 출석을 눌러 주세요 · ') + `${hm(a.t)}까지` + err;
+}
+
+// 로그인: 이름 → 서버 함수로 내부 이메일을 찾아 비밀번호 로그인 (앱과 같은 길)
+async function doLogin(name, pw) {
+  const { data: email, error: e1 } = await sb.rpc('teacher_login_email', { p_name: name.trim() });
+  if (e1 || !email) throw new Error('그 이름의 교직원이 없습니다.');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) throw new Error(error.status === 429 ? '지금 로그인 요청이 몰려 잠시 막혔습니다. 1~2분 뒤 다시.' : '비밀번호가 맞지 않습니다.');
+  return data.session;
+}
+function showLogin(on) { $('login').classList.toggle('on', on); if (on) setTimeout(() => $('lgName').focus(), 0); }
+if (sb) {
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault(); $('lgMsg').textContent = '';
+    try { session = await doLogin($('lgName').value, $('lgPw').value); showLogin(false); poll = null; await loadSettings(); }
+    catch (err) { $('lgMsg').textContent = err.message; }
+  });
+  sb.auth.getSession().then(async ({ data }) => {
+    session = data.session || null;
+    if (session) await loadSettings(); else showLogin(true);
+  });
+  sb.auth.onAuthStateChange((ev, s) => { session = s || null; if (ev === 'SIGNED_OUT') { poll = null; lastLayout = ''; } });
+}
 
 
 
@@ -323,6 +475,7 @@ function render(t) {
   if (show) {
     $('attendPeriod').innerHTML = a ? `지금<br>${a.period}` : '부광고ON';
     $('attendUntil').textContent = a ? `${hm(a.t)}까지` : '';
+    if (a) { pollMissing(t, a); renderList(a); } else $('attend').classList.remove('list');
   }
   fitIfChanged();
 }
@@ -330,13 +483,13 @@ function render(t) {
 // 지난 순간 사이에 지나간 시각이면 종을 친다 (처음 켤 때는 안 친다)
 const events = [];
 for (const x of exams) events.push({ at: x.r, k: 'ready' }, { at: x.s, k: 'start' }, { at: x.e - WARN_BEFORE, k: 'warn' }, { at: x.e, k: 'end' });
-for (const a of attend) events.push({ at: a.f, k: 'attend', quietInExam: true });   // 시험 중에는 출석 알림음을 내지 않는다
 
 let prev = null;
 function tick() {
   const t = secOfDay(nowDate());
   if (prev !== null && t > prev && t - prev < 5) {
     for (const ev of events) if (ev.at > prev && ev.at <= t && !(ev.quietInExam && inExam(ev.at))) bell(ev.k);
+    for (const a of windowsFor(DAYS[nowDate().getDay()])) if (a.f > prev && a.f <= t && !inExam(a.f)) bell('attend');   // 시험 중에는 출석 알림음을 내지 않는다
   }
   prev = t;
   render(t);
@@ -363,6 +516,11 @@ document.addEventListener('keydown', (e) => {
   if (k === 'f' || k === 'ㄹ') {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
     else document.exitFullscreen();
+  } else if (k === 'l' || k === 'ㅣ') {
+    if (!sb) return;
+    if (session) { sb.auth.signOut(); session = null; poll = null; showLogin(true); } else showLogin(true);
+  } else if (k === 'escape') {
+    showLogin(false);
   } else if (k === 's' || k === 'ㄴ') {
     unlock().then(() => bell('start'));
   } else if (k === 'a' || k === 'ㅁ') {
