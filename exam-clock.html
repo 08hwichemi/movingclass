@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>모의고사 시계</title>
+<style>
+/* ─────────────────────────────────────────────────────────────
+   빔 프로젝터용 모의고사 시계(아날로그) + 출석 안내
+   수능장처럼 아날로그 시계만 둔다 — 움직이는 숫자 시각·남은 시간은 화면에 없다.
+   노트북에서 이 파일을 더블클릭 → 화면을 한 번 클릭(종소리 켜기) → F 키(전체화면)
+   인터넷이 없어도 돌아간다. 시간은 노트북 시계를 따른다.
+   ───────────────────────────────────────────────────────────── */
+:root{
+  --bg:#000; --ink:#F2F2F2; --sub:#C3C8C5; --line:#2A2F2C;
+  --ready:#7FD3FF; --warn:#FFC23D; --end:#FF6B5B; --rest:#9FD9B0;
+  --yellow:#FFD23F;
+  --accent:#4FC3F7;   /* 지금 과목: 제목·네모칸·시계 테두리를 같은 하늘색으로 */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
+  font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR","Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;cursor:default;user-select:none}
+
+/* 가로 네 칸: 시계 2칸 · 교시 안내 1칸 · 출석 안내 1칸 */
+#app{position:fixed;inset:0;display:grid;grid-template-columns:2fr 1fr 1fr;gap:2vw;padding:3vh 2.4vw;align-items:center}
+#dialWrap{width:100%;max-height:94vh;aspect-ratio:1;justify-self:center;display:flex;align-items:center;justify-content:center}
+#dial{height:100%;width:100%;display:block}
+
+/* 교시 안내 칸 */
+#side{--k:1;height:94vh;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:calc(1.4vh * var(--k));min-width:0}
+/* 제목·상태 글씨는 칸 너비에 맞춰 최대한 크게 (fit() 가 줄인다) */
+#head,#head2,#kicker,#title{white-space:nowrap;overflow:hidden;width:100%}
+#head{color:var(--sub);font-weight:800;line-height:1.2}
+#head2{color:var(--ink);font-weight:900;line-height:1.2}
+#kicker{font-weight:900;line-height:1.2;padding:.08em 0}
+/* 지금 상태를 상자로: 시험 중 = 분홍 바탕·빨간 글씨, 휴식 중 = 연두 바탕·초록 글씨 */
+#kicker .badge{display:inline-block;padding:.06em .45em;border-radius:.28em;letter-spacing:.02em}
+#kicker .note{margin-left:.35em;color:var(--warn);font-weight:800}
+#kicker .note.calm{color:var(--rest)}
+.b-exam{background:#FFD0DC;color:#D50000}
+.b-rest{background:#CFEFD9;color:#1B5E32}
+.b-ready{background:#CDEBFA;color:#0B4F72}
+.b-ended{background:#FFD0DC;color:#D50000}
+.b-done{background:#3A3F3C;color:#F2F2F2}
+#title{font-weight:900;line-height:1.15;color:var(--accent)}
+#sub{font-size:calc(min(3.4vh,1.8vw) * var(--k));color:var(--sub);font-weight:700;word-break:keep-all;line-height:1.45}
+#sub b{color:var(--ink)}
+.s-done #title{color:var(--rest)}
+
+/* 과목 네모 네 개 */
+#strip{display:flex;flex-direction:column;gap:calc(1.2vh * var(--k))}
+#strip div{border:.35vh solid var(--line);border-radius:1.4vh;padding:calc(.8vh * var(--k)) .6vw;text-align:center;color:var(--ink);font-size:calc(min(3.6vh,1.9vw) * var(--k));font-weight:800;line-height:1.3}
+#strip div b{display:block;font-size:calc(min(4.6vh,2.4vw) * var(--k));font-weight:900;color:var(--ink);line-height:1.25}
+#strip div.on{border-color:var(--accent);border-width:.6vh;background:#0B2533;color:var(--accent)}
+#strip div.on b{color:var(--accent)}
+#strip div.past{opacity:.3}
+
+/* 출석 안내 칸 — 안내 시간이 아니면 비워 둔다 */
+#attendCol{height:94vh;display:flex;align-items:center;min-width:0}
+#attend{--k:1}
+#attend{display:none;width:100%;height:86vh;border-radius:2.4vh;background:var(--yellow);color:#1A1400;
+  flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3vh 1vw;gap:calc(2vh * var(--k));overflow:hidden}
+#attend.on{display:flex;animation:blink 30s linear infinite}   /* 30초마다 두 번 깜빡 */
+#attend .ic{font-size:calc(min(9vh,5vw) * var(--k));line-height:1}
+#attend .p{font-size:calc(min(8vh,4.1vw) * var(--k));font-weight:900;line-height:1.15;word-break:keep-all}
+#attend .m{font-size:calc(min(8vh,4.1vw) * var(--k));font-weight:900;line-height:1.2;word-break:keep-all}
+#attend .u{font-size:calc(min(4vh,2.2vw) * var(--k));font-weight:800;opacity:.8}
+@keyframes blink{0%,6%,100%{opacity:1}1.5%,4.5%{opacity:.12}}
+
+#help kbd{border:1px solid var(--sub);border-radius:.6vh;padding:0 .7vh;font-family:inherit;color:var(--ink)}
+#help{position:fixed;right:1.5vw;bottom:.6vh;font-size:1.8vh;color:#555;transition:opacity .6s}
+#mute{position:fixed;left:1.5vw;bottom:.6vh;font-size:1.8vh;color:var(--end)}
+#mode{position:fixed;left:50%;top:.6vh;transform:translateX(-50%);font-size:1.8vh;color:var(--warn)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="dialWrap"><svg id="dial" viewBox="-110 -110 220 220" aria-label="시계"></svg></div>
+  <div id="side">
+    <div><div id="head"></div><div id="head2"></div></div>
+    <div id="main">
+      <div id="kicker"></div>
+      <div id="title"></div>
+      <div id="sub"></div>
+    </div>
+    <div id="strip"></div>
+  </div>
+  <div id="attendCol">
+    <div id="attend">
+      <div class="ic">📱</div>
+      <div class="p" id="attendPeriod"></div>
+      <div class="m">출석을<br>눌러<br>주세요</div>
+      <div class="u" id="attendUntil"></div>
+    </div>
+  </div>
+</div>
+
+<div id="help"><kbd>F</kbd> 전체화면 · <kbd>S</kbd> 소리 · <kbd>A</kbd> 출석 안내</div>
+<div id="mute"></div>
+<div id="mode"></div>
+
+<script>
+/* ═════════════════════════════════════════════════════════════
+   여기만 고치면 다음 모의고사에도 쓴다
+   ═════════════════════════════════════════════════════════════ */
+const SCHOOL = '부광고등학교';
+const TITLE = '면학실 모의고사';
+
+// 과목별 준비령 · 시작(본령) · 종료
+const EXAMS = [
+  { name: '국어', ready: '08:55', start: '09:00', end: '10:20' },
+  { name: '수학', ready: '10:35', start: '10:40', end: '12:20' },
+  { name: '영어', ready: '13:35', start: '13:40', end: '14:50' },
+  { name: '탐구', ready: '15:35', start: '15:40', end: '16:10' },
+];
+const LUNCH = { start: '12:40', end: '13:40' };
+
+// 출석 안내: 학교 교시가 시작할 때부터 ATTEND_MIN 분 동안 (시험과 상관없이)
+// 부광고ON 서버 설정의 교시 시작 시각 (2026-10-08 확인)
+const PERIODS = [
+  { period: '1교시', start: '08:50' },
+  { period: '2교시', start: '09:50' },
+  { period: '3교시', start: '10:50' },
+  { period: '4교시', start: '11:50' },
+  { period: '5교시', start: '13:40' },
+  { period: '6교시', start: '14:40' },
+];
+const ATTEND_MIN = 20;
+
+const ENDED_SHOW = 60;     // 종료 문구를 몇 초 띄울지
+const WARN_BEFORE = 600;   // 종료 몇 초 전부터 노란색 + 예비 종
+/* ═════════════════════════════════════════════════════════════ */
+
+const $ = (id) => document.getElementById(id);
+const toSec = (hm) => { const [h, m, s] = hm.split(':').map(Number); return h * 3600 + m * 60 + (s || 0); };
+const pad = (n) => String(n).padStart(2, '0');
+const hm = (s) => `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s % 3600 / 60))}`;
+
+// 화면에는 시험 과목 번호를 쓰지 않는다. 출석 안내의 '3교시'(학교 교시)와 헷갈린다.
+const exams = EXAMS.map((e, i) => ({ ...e, i, r: toSec(e.ready), s: toSec(e.start), e: toSec(e.end) }));
+const lunch = { s: toSec(LUNCH.start), e: toSec(LUNCH.end) };
+const attend = PERIODS.map(p => ({ ...p, f: toSec(p.start), t: toSec(p.start) + ATTEND_MIN * 60 }));
+document.getElementById('head').textContent = SCHOOL;
+document.getElementById('head2').textContent = TITLE;
+setTimeout(() => { setFit('head', SCHOOL, 0.05); setFit('head2', TITLE, 0.075); }, 0);
+
+// ── 시각. 미리 돌려보기: 주소 끝에 ?t=10:19:30&speed=10 ──
+const q = new URLSearchParams(location.search);
+const startReal = Date.now();
+const speed = Math.max(1, Number(q.get('speed')) || 1);
+let base = null;
+if (q.get('t')) { const d = new Date(); const [h, m, s] = q.get('t').split(':').map(Number); d.setHours(h, m, s || 0, 0); base = d.getTime(); }
+const nowDate = () => base === null ? new Date() : new Date(base + (Date.now() - startReal) * speed);
+const secOfDay = (d) => d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
+if (base !== null) $('mode').textContent = '미리 보기 모드 — 실제 시각 아님';
+
+// ── 아날로그 시계판 ──
+const NS = 'http://www.w3.org/2000/svg';
+const svg = $('dial');
+const el = (tag, attrs, parent = svg) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); parent.appendChild(n); return n; };
+el('circle', { r: 104, fill: '#0B0D0C', stroke: '#3A3F3C', 'stroke-width': 2 });
+const arc = el('path', { fill: 'none', 'stroke-width': 7, 'stroke-linecap': 'butt', opacity: .9 });   // 남은 시간 표시 (분 눈금 기준, 60분 이내일 때)
+for (let i = 0; i < 60; i++) {
+  const a = i * 6 * Math.PI / 180, big = i % 5 === 0;
+  const r1 = big ? 86 : 92, r2 = 98;
+  el('line', { x1: r1 * Math.sin(a), y1: -r1 * Math.cos(a), x2: r2 * Math.sin(a), y2: -r2 * Math.cos(a),
+               stroke: big ? '#F2F2F2' : '#6A706C', 'stroke-width': big ? 3.2 : 1.2, 'stroke-linecap': 'round' });
+}
+for (let h = 1; h <= 12; h++) {
+  const a = h * 30 * Math.PI / 180, r = 71;
+  const t = el('text', { x: r * Math.sin(a), y: -r * Math.cos(a), fill: '#F2F2F2', 'font-size': 17, 'font-weight': 700,
+                         'text-anchor': 'middle', 'dominant-baseline': 'central' });
+  t.textContent = h;
+}
+const hand = (len, tail, w, color) => el('line', { x1: 0, y1: tail, x2: 0, y2: -len, stroke: color, 'stroke-width': w, 'stroke-linecap': 'round' });
+const hHand = hand(50, 10, 10, '#FFFFFF');   // 시침: 짧고 굵게
+const mHand = hand(88, 12, 5.5, '#FFFFFF');  // 분침: 눈금까지 길게
+const sHand = hand(88, 18, 1.8, '#FF5B4B');
+el('circle', { r: 5.5, fill: '#FF5B4B' });
+el('circle', { r: 2, fill: '#0B0D0C' });
+
+function drawDial(t, st) {
+  const h = (t / 3600) % 12, m = (t / 60) % 60, s = t % 60;
+  hHand.setAttribute('transform', `rotate(${h * 30})`);
+  mHand.setAttribute('transform', `rotate(${m * 6})`);
+  sHand.setAttribute('transform', `rotate(${Math.floor(s) * 6})`);
+  // 시험 중이면 지금부터 끝나는 시각까지, 준비면 시작까지를 테두리에 칠한다 (60분 이내만)
+  let to = null, color = '#F2F2F2';
+  if (st.k === 'exam' || st.k === 'warn') { to = st.x.e; color = st.k === 'warn' ? '#FFC23D' : '#4FC3F7'; }
+  else if (st.k === 'ready') { to = st.x.s; color = '#4FC3F7'; }
+  if (to === null || to - t > 3600 || to <= t) { arc.setAttribute('d', ''); return; }
+  const a0 = (t / 60) % 60 * 6, a1 = a0 + (to - t) / 60 * 6, R = 101;
+  const p = (a) => `${R * Math.sin(a * Math.PI / 180)} ${-R * Math.cos(a * Math.PI / 180)}`;
+  arc.setAttribute('d', `M ${p(a0)} A ${R} ${R} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${p(Math.min(a1, a0 + 359.9))}`);
+  arc.setAttribute('stroke', color);
+}
+
+// ── 종소리 (파일 없이 브라우저가 만든다) ──
+let ctx = null;
+function tone(freq, at, dur, vol = 0.35) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'sine'; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(vol, at + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  const o2 = ctx.createOscillator(), g2 = ctx.createGain();   // 배음을 조금 섞어 종 같은 소리
+  o2.type = 'sine'; o2.frequency.value = freq * 2.01;
+  g2.gain.setValueAtTime(0.0001, at); g2.gain.exponentialRampToValueAtTime(vol * 0.25, at + 0.02); g2.gain.exponentialRampToValueAtTime(0.0001, at + dur * 0.6);
+  o.connect(g).connect(ctx.destination); o2.connect(g2).connect(ctx.destination);
+  o.start(at); o.stop(at + dur + 0.05); o2.start(at); o2.stop(at + dur + 0.05);
+}
+function bell(kind) {
+  if (!ctx) return;
+  const t = ctx.currentTime + 0.05;
+  const dingdong = (t0) => { tone(784, t0, 1.6); tone(659, t0 + 0.7, 2.2); };   // 솔-미
+  if (kind === 'ready') dingdong(t);
+  else if (kind === 'start') { dingdong(t); dingdong(t + 2.4); }
+  else if (kind === 'warn') tone(880, t, 1.4, 0.25);
+  else if (kind === 'end') { dingdong(t); dingdong(t + 2.4); dingdong(t + 4.8); }
+  else if (kind === 'attend') { tone(1047, t, 0.5, 0.25); tone(1319, t + 0.25, 0.9, 0.25); }
+}
+function updateMute() { $('mute').textContent = ctx && ctx.state === 'running' ? '' : '🔇 소리 꺼짐 — 화면을 한 번 클릭하면 종소리가 켜집니다'; }
+
+// ── 지금 무엇을 띄울지 ──
+function stateAt(t) {
+  for (const x of exams) {
+    if (t >= x.r && t < x.s) return { k: 'ready', x };
+    if (t >= x.s && t < x.e) return { k: t >= x.e - WARN_BEFORE ? 'warn' : 'exam', x };
+    if (t >= x.e && t < x.e + ENDED_SHOW) return { k: 'ended', x };
+  }
+  const next = exams.find(x => t < x.r);
+  if (!next) return { k: 'done' };
+  if (t < exams[0].r) return { k: 'before', next };
+  if (t >= lunch.s && t < lunch.e) return { k: 'lunch', next };
+  return { k: 'break', next };
+}
+const inExam = (t) => exams.some(x => t >= x.s && t < x.e);
+
+let manualAttend = null;   // null 이면 시간표대로, true/false 면 손으로 정한 것
+function attendAt(t) { return attend.find(a => t >= a.f && t < a.t) || null; }
+
+
+
+// 글씨를 칸 너비에 맞춰 최대한 크게. 넘치면 줄인다. (화면 높이 × ratio 가 최대)
+let K = 1;   // 오른쪽 칸이 세로로 넘칠 때 글씨 전체를 줄이는 배율
+function fit(el, ratio) {
+  let px = Math.round(innerHeight * ratio * K);
+  el.style.fontSize = px + 'px';
+  while (el.scrollWidth > el.clientWidth && px > 12) { px -= 2; el.style.fontSize = px + 'px'; }
+}
+const fitRatio = {};
+const fitHtml = {};
+function setFit(id, text, ratio, html) {
+  const el = document.getElementById(id);
+  const key = html === undefined ? text : html;
+  if (fitHtml[id] === key && fitRatio[id] === ratio) return;
+  if (html === undefined) el.textContent = text; else el.innerHTML = html;
+  fitHtml[id] = key; fitRatio[id] = ratio; fit(el, ratio);
+}
+function refit() { for (const id in fitRatio) fit(document.getElementById(id), fitRatio[id]); }
+
+// 칸 안에 다 들어갈 때까지 글씨를 조금씩 줄인다. 화면 비율·글꼴이 달라도 잘리지 않게.
+const overflows = (box) => box.scrollHeight > box.clientHeight + 1;
+function fitColumns() {
+  const side = $('side'), card = $('attend');
+  K = 1; side.style.setProperty('--k', 1); refit();
+  while (overflows(side) && K > 0.4) { K -= 0.03; side.style.setProperty('--k', K); refit(); }
+  let k2 = 1; card.style.setProperty('--k', 1);
+  while (card.classList.contains('on') && overflows(card) && k2 > 0.4) { k2 -= 0.03; card.style.setProperty('--k', k2); }
+}
+let lastLayout = '';
+function fitIfChanged() {
+  const key = innerWidth + 'x' + innerHeight + '|' + $('main').innerText + '|' + $('attend').className + $('attend').innerText;
+  if (key !== lastLayout) { lastLayout = key; fitColumns(); }
+}
+addEventListener('resize', () => { lastLayout = ''; fitIfChanged(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { lastLayout = ''; fitIfChanged(); });
+
+function render(t) {
+  const st = stateAt(t);
+  drawDial(t, st);
+  $('main').className = 's-' + st.k;
+  let badge = '', bcls = '', note = '', title = '', sub = '';
+  const E = (x) => EXAMS[x.i];
+
+  // 움직이는 숫자(현재 시각·남은 시간)는 쓰지 않는다. 시정표에 적힌 시각만 쓴다.
+  if (st.k === 'ready') {
+    badge = '시험 준비'; bcls = 'b-ready';
+    title = `${st.x.name} 영역`;
+    sub = `<b>${E(st.x).start}</b> 시작 · 휴대폰은 가방에`;
+  } else if (st.k === 'exam' || st.k === 'warn') {
+    badge = '시험 중'; bcls = 'b-exam';
+    if (st.k === 'warn') note = '종료 10분 전';
+    title = `${st.x.name} 영역`;
+    sub = `${E(st.x).start} ~ <b>${E(st.x).end}</b>`;
+  } else if (st.k === 'ended') {
+    badge = '시험 종료'; bcls = 'b-ended';
+    title = `${st.x.name} 영역`;
+    sub = '<b>시험이 끝났습니다</b><br>필기구를 내려놓으세요';
+  } else if (st.k === 'break' || st.k === 'lunch' || st.k === 'before') {
+    badge = '휴식 중'; bcls = 'b-rest';
+    note = st.k === 'lunch' ? '점심시간' : '';
+    title = `다음 ${st.next.name}`;
+    sub = `<b>${E(st.next).ready}</b> 준비 · ${E(st.next).start} 시작` + (st.k === 'before' ? '' : '<br>교실에서 자습');
+  } else {
+    badge = '오늘 일정 끝'; bcls = 'b-done';
+    title = '시험 끝';
+    sub = '<b>오늘 시험이 모두 끝났습니다</b><br>수고했습니다';
+  }
+  setFit('kicker', badge, 0.075, `<span class="badge ${bcls}">${badge}</span>` + (note ? `<span class="note${bcls === 'b-rest' ? ' calm' : ''}">${note}</span>` : ''));
+  setFit('title', title, 0.15);
+  $('sub').innerHTML = sub;
+
+  $('strip').innerHTML = exams.map(x => {
+    const on = (st.x && st.x.i === x.i) || (st.next && st.next.i === x.i);
+    const cls = on ? 'on' : (t >= x.e + ENDED_SHOW ? 'past' : '');
+    return `<div class="${cls}"><b>${x.name}</b>${E(x).start} ~ ${E(x).end}</div>`;
+  }).join('');
+
+  const a = attendAt(t);
+  const show = manualAttend === null ? !!a : manualAttend;
+  $('attend').classList.toggle('on', show);
+  if (show) {
+    $('attendPeriod').innerHTML = a ? `지금<br>${a.period}` : '부광고ON';
+    $('attendUntil').textContent = a ? `${hm(a.t)}까지` : '';
+  }
+  fitIfChanged();
+}
+
+// 지난 순간 사이에 지나간 시각이면 종을 친다 (처음 켤 때는 안 친다)
+const events = [];
+for (const x of exams) events.push({ at: x.r, k: 'ready' }, { at: x.s, k: 'start' }, { at: x.e - WARN_BEFORE, k: 'warn' }, { at: x.e, k: 'end' });
+for (const a of attend) events.push({ at: a.f, k: 'attend', quietInExam: true });   // 시험 중에는 출석 알림음을 내지 않는다
+
+let prev = null;
+function tick() {
+  const t = secOfDay(nowDate());
+  if (prev !== null && t > prev && t - prev < 5) {
+    for (const ev of events) if (ev.at > prev && ev.at <= t && !(ev.quietInExam && inExam(ev.at))) bell(ev.k);
+  }
+  prev = t;
+  render(t);
+}
+setInterval(tick, 200 / Math.min(speed, 4));
+tick();
+
+// ── 조작 ──
+// 파일을 열면 바로 돌아간다. 종소리만은 브라우저 규칙 때문에 화면을 한 번 클릭하거나
+// 아무 키나 눌러야 켜진다(그 전에는 왼쪽 아래에 '소리 꺼짐'이 보인다).
+async function unlock() {
+  try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); await ctx.resume(); } catch (e) {}
+  updateMute();
+}
+unlock();
+try { navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}   // 화면 꺼짐 막기 (되는 브라우저만)
+document.addEventListener('click', unlock);
+document.addEventListener('keydown', unlock);
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') { try { await navigator.wakeLock.request('screen'); } catch (e) {} }
+});
+document.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if (k === 'f' || k === 'ㄹ') {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    else document.exitFullscreen();
+  } else if (k === 's' || k === 'ㄴ') {
+    unlock().then(() => bell('start'));
+  } else if (k === 'a' || k === 'ㅁ') {
+    // 한 번 누르면 지금과 반대로(켜져 있으면 끄고, 꺼져 있으면 켠다), 다시 누르면 시간표대로
+    const auto = !!attendAt(secOfDay(nowDate()));
+    manualAttend = manualAttend === null ? !auto : null;
+    tick();
+  }
+});
+let helpTimer;
+document.addEventListener('mousemove', () => {
+  $('help').style.opacity = 1; document.body.style.cursor = 'default';
+  clearTimeout(helpTimer);
+  helpTimer = setTimeout(() => { $('help').style.opacity = 0; document.body.style.cursor = 'none'; }, 3000);
+});
+updateMute();
+</script>
+</body>
+</html>
