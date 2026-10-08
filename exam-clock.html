@@ -291,7 +291,6 @@ function render(t) {
     sub = `<b>${E(st.x).start}</b> 시작 · 휴대폰은 가방에`;
   } else if (st.k === 'exam' || st.k === 'warn') {
     badge = '시험 중'; bcls = 'b-exam';
-    if (st.k === 'warn') note = '종료 10분 전';
     title = `${st.x.name} 영역`;
     sub = `${E(st.x).start} ~ <b>${E(st.x).end}</b>`;
   } else if (st.k === 'ended') {
