@@ -11,7 +11,8 @@
 <style>
 /* ─────────────────────────────────────────────────────────────
    빔 프로젝터용 모의고사 시계(아날로그) + 출석 안내
-   수능장처럼 아날로그 시계만 둔다 — 움직이는 숫자 시각·남은 시간은 화면에 없다.
+   아날로그 시계는 준비령~종료 동안 '수능 시각'(그 과목 수능 시작 시각에 맞춘 시각)으로 돌고, 나머지 때는 실제 시각.
+   그 아래 숫자 시계는 늘 실제 시각(2026-10-17 학생 요청). 남은 시간 글씨는 넣지 않는다.
    노트북에서 이 파일을 더블클릭 → 화면을 한 번 클릭(종소리 켜기) → F 키(전체화면)
    시계·종소리는 인터넷이 없어도 돌아간다. 시간은 노트북 시계를 따른다.
    출석 안내 칸의 '안 누른 학생 명단'(v100)만 부광고ON 서버를 읽는다 — 교직원 계정으로 한 번 로그인하면
@@ -30,6 +31,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
 
 /* 가로 네 칸: 시계 2칸 · 교시 안내 1칸 · 출석 안내 1칸 */
 #app{position:fixed;inset:0;display:grid;grid-template-columns:2fr 1fr 1fr;gap:2vw;padding:3vh 2.4vw;align-items:center}
+#clockCol{display:flex;align-items:center;justify-content:center;min-width:0}
 #dialWrap{width:100%;max-height:94vh;aspect-ratio:1;justify-self:center;display:flex;align-items:center;justify-content:center}
 #dial{height:100%;width:100%;display:block}
 
@@ -61,6 +63,9 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
 #strip div.on{border-color:var(--accent);border-width:.6vh;background:#0B2533;color:var(--accent)}
 #strip div.on b{color:var(--accent)}
 #strip div.past{opacity:.3}
+#strip div i{display:block;font-style:normal;font-size:.62em;font-weight:700;color:var(--sub)}
+#sub small{font-size:.75em;color:var(--sub)}
+
 
 /* 출석 안내 칸 — 안내 시간이 아니면 비워 둔다 */
 #attendCol{height:94vh;display:flex;align-items:center;min-width:0}
@@ -101,6 +106,34 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
 #login .msg{font-size:2vh;color:var(--end);min-height:2.4vh}
 @keyframes blink{0%,6%,100%{opacity:1}1.5%,4.5%{opacity:.12}}
 
+/* 현재 시각(디지털, 실제 시각). 배치는 body 의 layout-a/b/c 가 정한다 */
+#digital{display:flex;align-items:baseline;justify-content:center;gap:1.2vw;white-space:nowrap;font-variant-numeric:tabular-nums}
+#digital .lb{color:var(--sub);font-weight:800}
+#digital .tm{color:var(--ink);font-weight:800;letter-spacing:.02em}
+#digital .ss{color:var(--sub);font-weight:700}
+/* a: 오른쪽 교시 칸 맨 위 */
+.layout-a #digital{flex-direction:column;align-items:flex-start;gap:0;border:.35vh solid var(--line);border-radius:1.6vh;padding:1vh 1vw}
+.layout-a #digital .lb{font-size:calc(2.8vh * var(--k))}
+.layout-a #digital .tm{font-size:calc(min(11vh,5.6vw) * var(--k));line-height:1}
+.layout-a #digital .ss{display:none}
+/* b: 시계 아래 */
+.layout-b #clockCol{height:94vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5vh;min-width:0}
+.layout-b #dialWrap{max-height:78vh;height:78vh;width:auto}
+.layout-b #digital .lb{font-size:4vh}
+.layout-b #digital .tm{font-size:10vh;line-height:1}
+.layout-b #digital .ss{font-size:5vh}
+/* c: 화면 맨 위 가로줄 */
+.layout-c #app{grid-template-rows:auto 1fr;padding-top:1.6vh}
+.layout-c #topbar{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;border-bottom:.35vh solid var(--line);padding-bottom:1vh}
+.layout-c #topbar .tb-l{color:var(--sub);font-weight:800;font-size:4vh}
+.layout-c #digital .lb{font-size:3.6vh}
+.layout-c #digital .tm{font-size:9vh;line-height:1}
+.layout-c #digital .ss{font-size:4.6vh}
+.layout-c #dialWrap{max-height:80vh}
+.layout-c #side,.layout-c #attendCol{height:80vh}
+.layout-c #attend{height:76vh}
+.layout-c #head,.layout-c #head2{display:none}
+
 #help kbd{border:1px solid var(--sub);border-radius:.6vh;padding:0 .7vh;font-family:inherit;color:var(--ink)}
 #help{position:fixed;right:1.5vw;bottom:.6vh;font-size:1.8vh;color:#555;transition:opacity .6s}
 #mute{position:fixed;left:1.5vw;bottom:.6vh;font-size:1.8vh;color:var(--end)}
@@ -109,8 +142,13 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
 </head>
 <body>
 <div id="app">
-  <div id="dialWrap"><svg id="dial" viewBox="-110 -110 220 220" aria-label="시계"></svg></div>
+  <div id="topbar" style="display:none"><div class="tb-l" id="tbTitle"></div><div id="digitalSlotC"></div></div>
+  <div id="clockCol">
+    <div id="dialWrap"><svg id="dial" viewBox="-110 -110 220 220" aria-label="시계"></svg></div>
+    <div id="digitalSlotB"></div>
+  </div>
   <div id="side">
+    <div id="digitalSlotA"></div>
     <div><div id="head"></div><div id="head2"></div></div>
     <div id="main">
       <div id="kicker"></div>
@@ -145,6 +183,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
   </form>
 </div>
 
+<div id="digital"><span class="lb">실제 시각</span><span class="tm" id="dgTime"></span><span class="ss" id="dgSec"></span></div>
 <div id="help"><kbd>F</kbd> 전체화면 · <kbd>S</kbd> 소리 · <kbd>A</kbd> 출석 안내 · <kbd>L</kbd> 로그인/로그아웃</div>
 <div id="mute"></div>
 <div id="mode"></div>
@@ -156,13 +195,17 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
 const SCHOOL = '부광고등학교';
 const TITLE = '면학실 모의고사';
 
-// 과목별 준비령 · 시작(본령) · 종료
+// 과목별 준비령 · 시작(본령) · 종료 (학교 실제 시각) + sat = 수능 당일 그 과목 시작 시각
+// 아날로그 시계는 준비령부터 종료까지 '수능 시각'(실제 시각 - (start - sat))으로 돈다. 나머지 때는 실제 시각.
+// 시험 길이가 수능과 같아야 끝나는 시각도 수능과 맞는다(국어 80 · 수학 100 · 영어 70 · 탐구 30분).
 const EXAMS = [
-  { name: '국어', ready: '08:55', start: '09:00', end: '10:20' },
-  { name: '수학', ready: '10:35', start: '10:40', end: '12:20' },
-  { name: '영어', ready: '13:35', start: '13:40', end: '14:50' },
-  { name: '탐구', ready: '15:35', start: '15:40', end: '16:10' },
+  { name: '국어', ready: '08:55', start: '09:00', end: '10:20', sat: '08:40' },
+  { name: '수학', ready: '10:35', start: '10:40', end: '12:20', sat: '10:30' },
+  { name: '영어', ready: '13:35', start: '13:40', end: '14:50', sat: '13:10' },
+  { name: '탐구', ready: '15:35', start: '15:40', end: '16:10', sat: '15:35' },
 ];
+// 화면 배치: 'a' = 오른쪽 칸 맨 위에 현재 시각 · 'b' = 시계 아래 · 'c' = 화면 맨 위 가로줄. 주소 ?layout=b 로 바꿔 볼 수 있다
+const LAYOUT = 'b';   // 2026-10-17 사용자가 b 로 정함
 const LUNCH = { start: '12:40', end: '13:40' };
 
 // 출석 안내: 학교 교시가 시작할 때부터 ATTEND_MIN 분 동안 (시험과 상관없이)
@@ -195,7 +238,9 @@ const pad = (n) => String(n).padStart(2, '0');
 const hm = (s) => `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s % 3600 / 60))}`;
 
 // 화면에는 시험 과목 번호를 쓰지 않는다. 출석 안내의 '3교시'(학교 교시)와 헷갈린다.
-const exams = EXAMS.map((e, i) => ({ ...e, i, r: toSec(e.ready), s: toSec(e.start), e: toSec(e.end) }));
+const exams = EXAMS.map((e, i) => ({ ...e, i, r: toSec(e.ready), s: toSec(e.start), e: toSec(e.end), off: e.sat ? toSec(e.start) - toSec(e.sat) : 0 }));
+// 수능 시각으로 바꾼 그 과목 시각 (화면 글씨용)
+const satHm = (x, sec) => hm(sec - x.off);
 const lunch = { s: toSec(LUNCH.start), e: toSec(LUNCH.end) };
 // 출석 안내 창. 서버 설정(교시 시각 + '빈 시간표 차단' X 칸)을 받으면 요일마다 다르게 둔다 — 화요일 6교시처럼
 // 수업이 없는 교시에는 안내가 뜨지 않는다. 못 받으면 위 PERIODS 로.
@@ -205,6 +250,12 @@ const windowsFor = (day) => (attendWindows && attendWindows[day]) || PERIODS.map
 document.getElementById('head').textContent = SCHOOL;
 document.getElementById('head2').textContent = TITLE;
 setTimeout(() => { setFit('head', SCHOOL, 0.05); setFit('head2', TITLE, 0.075); }, 0);
+
+// ── 화면 배치 ──
+const layout = (new URLSearchParams(location.search).get('layout') || LAYOUT).toLowerCase();
+document.body.classList.add('layout-' + layout);
+$((layout === 'a' ? 'digitalSlotA' : layout === 'c' ? 'digitalSlotC' : 'digitalSlotB')).appendChild($('digital'));
+if (layout === 'c') { $('topbar').style.display = ''; $('tbTitle').textContent = `${SCHOOL} · ${TITLE}`; }
 
 // ── 시각. 미리 돌려보기: 주소 끝에 ?t=10:19:30&speed=10 ──
 const q = new URLSearchParams(location.search);
@@ -234,6 +285,8 @@ for (let h = 1; h <= 12; h++) {
                          'text-anchor': 'middle', 'dominant-baseline': 'central' });
   t.textContent = h;
 }
+// 시계판 안 글씨: 지금 시계가 무엇을 가리키는지 (수능 시각 / 실제 시각)
+const dialLabel = el('text', { x: 0, y: 36, 'font-size': 11, 'font-weight': 800, 'text-anchor': 'middle', 'dominant-baseline': 'central' });
 const hand = (len, tail, w, color) => el('line', { x1: 0, y1: tail, x2: 0, y2: -len, stroke: color, 'stroke-width': w, 'stroke-linecap': 'round' });
 const hHand = hand(50, 10, 10, '#FFFFFF');   // 시침: 짧고 굵게
 const mHand = hand(88, 12, 5.5, '#FFFFFF');  // 분침: 눈금까지 길게
@@ -241,15 +294,20 @@ const sHand = hand(88, 18, 1.8, '#FF5B4B');
 el('circle', { r: 5.5, fill: '#FF5B4B' });
 el('circle', { r: 2, fill: '#0B0D0C' });
 
-function drawDial(t, st) {
+// 준비령부터 종료(종료 문구)까지는 수능 시각, 나머지는 실제 시각
+function dialOffset(st) { return (st.x && (st.k === 'ready' || st.k === 'exam' || st.k === 'warn' || st.k === 'ended')) ? st.x.off : 0; }
+function drawDial(real, st) {
+  const off = dialOffset(st), t = real - off;
+  dialLabel.textContent = off ? '수능 시각' : '실제 시각';
+  dialLabel.setAttribute('fill', off ? '#4FC3F7' : '#6A706C');
   const h = (t / 3600) % 12, m = (t / 60) % 60, s = t % 60;
   hHand.setAttribute('transform', `rotate(${h * 30})`);
   mHand.setAttribute('transform', `rotate(${m * 6})`);
   sHand.setAttribute('transform', `rotate(${Math.floor(s) * 6})`);
   // 시험 중이면 지금부터 끝나는 시각까지, 준비면 시작까지를 테두리에 칠한다 (60분 이내만)
   let to = null, color = '#F2F2F2';
-  if (st.k === 'exam' || st.k === 'warn') { to = st.x.e; color = st.k === 'warn' ? '#FFC23D' : '#4FC3F7'; }
-  else if (st.k === 'ready') { to = st.x.s; color = '#4FC3F7'; }
+  if (st.k === 'exam' || st.k === 'warn') { to = st.x.e - off; color = st.k === 'warn' ? '#FFC23D' : '#4FC3F7'; }
+  else if (st.k === 'ready') { to = st.x.s - off; color = '#4FC3F7'; }
   if (to === null || to - t > 3600 || to <= t) { arc.setAttribute('d', ''); return; }
   const a0 = (t / 60) % 60 * 6, a1 = a0 + (to - t) / 60 * 6, R = 101;
   const p = (a) => `${R * Math.sin(a * Math.PI / 180)} ${-R * Math.cos(a * Math.PI / 180)}`;
@@ -429,22 +487,30 @@ function fitIfChanged() {
 addEventListener('resize', () => { lastLayout = ''; fitIfChanged(); });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { lastLayout = ''; fitIfChanged(); });
 
+let lastDigital = '';
+function renderDigital(t) {
+  const key = hm(t) + ':' + pad(Math.floor(t % 60));
+  if (key === lastDigital) return;
+  lastDigital = key;
+  $('dgTime').textContent = hm(t); $('dgSec').textContent = pad(Math.floor(t % 60));
+}
 function render(t) {
   const st = stateAt(t);
+  renderDigital(t);
   drawDial(t, st);
   $('main').className = 's-' + st.k;
   let badge = '', bcls = '', note = '', title = '', sub = '';
   const E = (x) => EXAMS[x.i];
 
-  // 움직이는 숫자(현재 시각·남은 시간)는 쓰지 않는다. 시정표에 적힌 시각만 쓴다.
+  // 시험 중 글씨는 수능 시각(아날로그와 같은 시각), 휴식 중 글씨는 실제 시각(숫자 시계와 같은 시각). 남은 시간은 쓰지 않는다.
   if (st.k === 'ready') {
     badge = '시험 준비'; bcls = 'b-ready';
     title = `${st.x.name} 영역`;
-    sub = `<b>${E(st.x).start}</b> 시작 · 휴대폰은 가방에`;
+    sub = `<b>${satHm(st.x, st.x.s)}</b> 시작 · 휴대폰은 가방에`;
   } else if (st.k === 'exam' || st.k === 'warn') {
     badge = '시험 중'; bcls = 'b-exam';
     title = `${st.x.name} 영역`;
-    sub = `${E(st.x).start} ~ <b>${E(st.x).end}</b>`;
+    sub = `${satHm(st.x, st.x.s)} ~ <b>${satHm(st.x, st.x.e)}</b>`;
   } else if (st.k === 'ended') {
     badge = '시험 종료'; bcls = 'b-ended';
     title = `${st.x.name} 영역`;
@@ -453,7 +519,7 @@ function render(t) {
     badge = '휴식 중'; bcls = 'b-rest';
     note = st.k === 'lunch' ? '점심시간' : '';
     title = `다음 ${st.next.name}`;
-    sub = `<b>${E(st.next).ready}</b> 준비 · ${E(st.next).start} 시작` + (st.k === 'before' ? '' : '<br>교실에서 자습');
+    sub = `<b>${E(st.next).ready}</b> 준비 · ${E(st.next).start} 시작 <small>(실제 시각)</small>` + (st.k === 'before' ? '' : '<br>교실에서 자습');
   } else {
     badge = '오늘 일정 끝'; bcls = 'b-done';
     title = '시험 끝';
@@ -466,7 +532,7 @@ function render(t) {
   $('strip').innerHTML = exams.map(x => {
     const on = (st.x && st.x.i === x.i) || (st.next && st.next.i === x.i);
     const cls = on ? 'on' : (t >= x.e + ENDED_SHOW ? 'past' : '');
-    return `<div class="${cls}"><b>${x.name}</b>${E(x).start} ~ ${E(x).end}</div>`;
+    return `<div class="${cls}"><b>${x.name}</b>${satHm(x, x.s)} ~ ${satHm(x, x.e)}${x.off ? `<i>실제 ${E(x).start} ~ ${E(x).end}</i>` : ''}</div>`;
   }).join('');
 
   const a = attendAt(t);
