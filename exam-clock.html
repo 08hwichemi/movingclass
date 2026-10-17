@@ -272,7 +272,6 @@ const NS = 'http://www.w3.org/2000/svg';
 const svg = $('dial');
 const el = (tag, attrs, parent = svg) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); parent.appendChild(n); return n; };
 el('circle', { r: 104, fill: '#0B0D0C', stroke: '#3A3F3C', 'stroke-width': 2 });
-const arc = el('path', { fill: 'none', 'stroke-width': 7, 'stroke-linecap': 'butt', opacity: .9 });   // 남은 시간 표시 (분 눈금 기준, 60분 이내일 때)
 for (let i = 0; i < 60; i++) {
   const a = i * 6 * Math.PI / 180, big = i % 5 === 0;
   const r1 = big ? 86 : 92, r2 = 98;
@@ -304,15 +303,7 @@ function drawDial(real, st) {
   hHand.setAttribute('transform', `rotate(${h * 30})`);
   mHand.setAttribute('transform', `rotate(${m * 6})`);
   sHand.setAttribute('transform', `rotate(${Math.floor(s) * 6})`);
-  // 시험 중이면 지금부터 끝나는 시각까지, 준비면 시작까지를 테두리에 칠한다 (60분 이내만)
-  let to = null, color = '#F2F2F2';
-  if (st.k === 'exam' || st.k === 'warn') { to = st.x.e - off; color = st.k === 'warn' ? '#FFC23D' : '#4FC3F7'; }
-  else if (st.k === 'ready') { to = st.x.s - off; color = '#4FC3F7'; }
-  if (to === null || to - t > 3600 || to <= t) { arc.setAttribute('d', ''); return; }
-  const a0 = (t / 60) % 60 * 6, a1 = a0 + (to - t) / 60 * 6, R = 101;
-  const p = (a) => `${R * Math.sin(a * Math.PI / 180)} ${-R * Math.cos(a * Math.PI / 180)}`;
-  arc.setAttribute('d', `M ${p(a0)} A ${R} ${R} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${p(Math.min(a1, a0 + 359.9))}`);
-  arc.setAttribute('stroke', color);
+  // 남은 시간 띠(테두리)는 없앴다(2026-10-17 사용자: 수능장 시계처럼). 시계판에는 바늘과 '수능 시각/실제 시각' 글씨만.
 }
 
 // ── 종소리 (파일 없이 브라우저가 만든다) ──
