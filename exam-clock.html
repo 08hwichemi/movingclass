@@ -70,7 +70,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
 /* 출석 안내 칸 — 안내 시간이 아니면 비워 둔다 */
 #attendCol{height:94vh;display:flex;align-items:center;min-width:0}
 #attend{--k:1}
-#attend{display:none;width:100%;height:86vh;border-radius:2.4vh;background:var(--yellow);color:#1A1400;
+#attend{display:none;width:100%;height:94vh;border-radius:2.4vh;background:var(--yellow);color:#1A1400;
   flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3vh 1vw;gap:calc(2vh * var(--k));overflow:hidden}
 #attend.on{display:flex;animation:blink 30s linear infinite}   /* 30초마다 두 번 깜빡 */
 #attend .ic{font-size:calc(min(9vh,5vw) * var(--k));line-height:1}
@@ -96,17 +96,19 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
 #attend.list .ft .err{color:#B3261E}
 
 /* 시계 보는 법 — 출석 안내가 없을 때 그 자리에 (2026-10-17 시안) */
-#guide{--k:1;display:none;width:100%;height:86vh;border:.4vh solid var(--line);border-radius:2.4vh;padding:3vh 1.2vw;
-  flex-direction:column;justify-content:center;gap:calc(3vh * var(--k));text-align:center;overflow:hidden}
+#guide{--k:1;display:none;width:100%;height:94vh;border:.4vh solid var(--line);border-radius:2.4vh;padding:0 1.2vw 2vh;
+  flex-direction:column;text-align:center;overflow:hidden}
 #guide.on{display:flex}
-#guide .gt{font-size:calc(min(5.4vh,2.8vw) * var(--k));font-weight:900;color:var(--sub);line-height:1.2}
-#guide .gr{border-top:.3vh solid var(--line);padding-top:calc(2.4vh * var(--k))}
-#guide .gk{font-size:calc(min(4.2vh,2.2vw) * var(--k));font-weight:800;color:var(--sub);line-height:1.2}
-#guide .gv{font-size:calc(min(7.4vh,3.8vw) * var(--k));font-weight:900;color:var(--ink);line-height:1.15}
+/* 제목은 맨 위 띠, 나머지 칸은 남은 높이에 고르게 펼친다 (2026-10-18 사용자: 가운데로 몰려 보였다) */
+#guide .gt{font-size:calc(min(6vh,3vw) * var(--k));font-weight:900;color:var(--sub);line-height:1.2;padding:2.6vh 0 2.2vh;border-bottom:.3vh solid var(--line)}
+#guide .gbody{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}
+#guide .gr+.gr,#guide .gn{border-top:.3vh solid var(--line);padding-top:calc(3vh * var(--k))}
+#guide .gk{font-size:calc(min(5vh,2.5vw) * var(--k));font-weight:800;color:var(--sub);line-height:1.2}
+#guide .gv{font-size:calc(min(9.5vh,4.5vw) * var(--k));font-weight:900;color:var(--ink);line-height:1.15}
 #guide .acc{color:var(--accent)}
 #guide .gk.acc{color:var(--accent);opacity:.8}
-#guide .gd{font-size:calc(min(3.6vh,1.9vw) * var(--k));font-weight:700;color:var(--sub);line-height:1.35;margin-top:.6vh;word-break:keep-all}
-#guide .gn{border-top:.3vh solid var(--line);padding-top:calc(2.4vh * var(--k));font-size:calc(min(4vh,2.1vw) * var(--k));font-weight:800;color:var(--warn);line-height:1.35;word-break:keep-all}
+#guide .gd{font-size:calc(min(4.4vh,2.15vw) * var(--k));font-weight:700;color:var(--sub);line-height:1.35;margin-top:.8vh;word-break:keep-all}
+#guide .gn{font-size:calc(min(4.8vh,2.3vw) * var(--k));font-weight:800;color:var(--warn);line-height:1.35;word-break:keep-all}
 #guide .gn:empty{display:none}
 #guide .gn b{color:var(--ink)}
 
@@ -133,7 +135,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
 .layout-a #digital .ss{display:none}
 /* b: 시계 아래 */
 .layout-b #clockCol{height:94vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5vh;min-width:0}
-.layout-b #dialWrap{max-height:78vh;height:78vh;width:auto}
+.layout-b #dialWrap{max-height:78vh;height:min(78vh,44vw);width:auto}
 /* '실제 시각' 글씨도 숫자와 같은 크기 (2026-10-17 사용자) — 화면이 좁아도 시계 칸 안에 들게 vw 로도 묶는다 */
 .layout-b #digital .lb{font-size:min(10vh,4.2vw);line-height:1}
 .layout-b #digital .tm{font-size:min(10vh,4.2vw);line-height:1}
@@ -162,12 +164,16 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
 .bc-ring #bigClock .bc-next{font-size:min(3.8vh,1.9vw);border-top:.3vh solid var(--line);padding-top:1.6vh}
 /* 모양 2 'card': 둥근 네모 판 — 날짜 · 큰 시각 · 다음 시험 */
 .bc-card #ring{display:none}
-.bc-card #bigClock{width:100%;height:86vh;border:.4vh solid var(--line);border-radius:3vh;background:#0B0D0C}
-.bc-card #bigClock .bc-in{width:100%}
-.bc-card #bigClock .bc-date{font-size:min(5.4vh,2.7vw)}
-.bc-card #bigClock .bc-lb{font-size:min(4.2vh,2.1vw);margin-top:5vh}
-.bc-card #bigClock .bc-tm{font-size:min(26vh,11vw);margin:1vh 0 5vh}
-.bc-card #bigClock .bc-next{font-size:min(4.6vh,2.3vw);border-top:.3vh solid var(--line);padding-top:3vh;width:80%}
+.bc-card #bigClock{--k:1;width:100%;height:94vh;border:.4vh solid var(--line);border-radius:2.4vh;background:#0B0D0C;overflow:hidden}
+/* 칸 높이를 위·가운데·아래로 고르게 나눠 쓴다. 글씨는 멀리서 보이게 칸 너비에 맞춰 크게 (2026-10-18 사용자) */
+.bc-card #bigClock .bc-in{width:100%;height:100%;justify-content:space-evenly;padding:2vh 1.5vw}
+.bc-card #bigClock .bc-date{font-size:calc(min(8vh,3.7vw) * var(--k));color:var(--ink);line-height:1.15}
+.bc-card #bigClock .bc-mid{display:flex;flex-direction:column;align-items:center}
+.bc-card #bigClock .bc-lb{font-size:calc(min(5.6vh,2.6vw) * var(--k));line-height:1.1}
+.bc-card #bigClock .bc-tm{font-size:calc(min(30vh,11.5vw) * var(--k));margin-top:.5vh}
+.bc-card #bigClock .bc-next{border-top:.4vh solid var(--line);padding-top:2.4vh;width:88%;line-height:1.25}
+.bc-card #bigClock .bc-next .n1{display:block;font-size:calc(min(9vh,4.2vw) * var(--k));font-weight:900;color:var(--rest)}
+.bc-card #bigClock .bc-next .n2{display:block;font-size:calc(min(6vh,2.8vw) * var(--k));font-weight:800;color:var(--sub);margin-top:.6vh}
 /* c: 화면 맨 위 가로줄 */
 .layout-c #app{grid-template-rows:auto 1fr;padding-top:1.6vh}
 .layout-c #topbar{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;border-bottom:.35vh solid var(--line);padding-bottom:1vh}
@@ -196,8 +202,10 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
       <svg id="ring" viewBox="-110 -110 220 220" aria-hidden="true"></svg>
       <div class="bc-in">
         <div class="bc-date" id="bcDate"></div>
-        <div class="bc-lb">현재 시각</div>
-        <div class="bc-tm"><span id="bcTime"></span><span class="bc-ss" id="bcSec"></span></div>
+        <div class="bc-mid">
+          <div class="bc-lb">현재 시각</div>
+          <div class="bc-tm"><span id="bcTime"></span><span class="bc-ss" id="bcSec"></span></div>
+        </div>
         <div class="bc-next" id="bcNext"></div>
       </div>
     </div>
@@ -215,9 +223,11 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
   <div id="attendCol">
     <div id="guide">
       <div class="gt">시계 보는 법</div>
-      <div class="gr"><div class="gk acc">아날로그 시계</div><div class="gv acc">수능 시각</div><div class="gd">예비령(10분 전)부터<br>시험 끝까지만 나옵니다</div></div>
+      <div class="gbody">
+      <div class="gr"><div class="gk acc">아날로그 시계</div><div class="gv acc">수능 시각</div><div class="gd">예비령(10분 전)부터<br>시험 끝까지</div></div>
       <div class="gr"><div class="gk">숫자 시계</div><div class="gv">실제 시각</div><div class="gd">출석 · 쉬는 시간은<br>이 시각으로</div></div>
       <div class="gn" id="guideNote"></div>
+      </div>
     </div>
     <div id="attend">
       <div class="ic">📱</div>
@@ -360,7 +370,7 @@ document.body.classList.add('bc-' + (new URLSearchParams(location.search).get('d
   }
 }
 // 시계판 안 글씨: 지금 시계가 무엇을 가리키는지 (수능 시각 / 실제 시각)
-const dialLabel = el('text', { x: 0, y: 36, 'font-size': 11, 'font-weight': 800, 'text-anchor': 'middle', 'dominant-baseline': 'central' });
+const dialLabel = el('text', { x: 0, y: 40, 'font-size': 16, 'font-weight': 800, 'text-anchor': 'middle', 'dominant-baseline': 'central' });
 const hand = (len, tail, w, color) => el('line', { x1: 0, y1: tail, x2: 0, y2: -len, stroke: color, 'stroke-width': w, 'stroke-linecap': 'round' });
 const hHand = hand(50, 10, 10, '#FFFFFF');   // 시침: 짧고 굵게
 const mHand = hand(88, 12, 5.5, '#FFFFFF');  // 분침: 눈금까지 길게
@@ -549,12 +559,14 @@ function fitColumns() {
   while (overflows(side) && K > 0.4) { K -= 0.03; side.style.setProperty('--k', K); refit(); }
   let k2 = 1; card.style.setProperty('--k', 1);
   while (card.classList.contains('on') && overflows(card) && k2 > 0.4) { k2 -= 0.03; card.style.setProperty('--k', k2); }
+  const bc = $('bigClock'); let k4 = 1; bc.style.setProperty('--k', 1);
+  while (getComputedStyle(bc).display !== 'none' && (overflows(bc) || bc.scrollWidth > bc.clientWidth + 1) && k4 > 0.4) { k4 -= 0.03; bc.style.setProperty('--k', k4); }
   const g = $('guide'); let k3 = 1; g.style.setProperty('--k', 1);
   while (g.classList.contains('on') && overflows(g) && k3 > 0.4) { k3 -= 0.03; g.style.setProperty('--k', k3); }
 }
 let lastLayout = '';
 function fitIfChanged() {
-  const key = innerWidth + 'x' + innerHeight + '|' + $('main').innerText + '|' + $('attend').className + $('attend').innerText + '|' + $('guide').className + $('guideNote').innerText;
+  const key = innerWidth + 'x' + innerHeight + '|' + $('main').innerText + '|' + $('attend').className + $('attend').innerText + '|' + $('guide').className + $('guideNote').innerText + '|' + document.body.className + $('bcNext').innerText;
   if (key !== lastLayout) { lastLayout = key; fitColumns(); }
 }
 addEventListener('resize', () => { lastLayout = ''; fitIfChanged(); });
@@ -574,8 +586,8 @@ function renderDigital(t) {
 // 큰 숫자 시계 판 아래 한 줄: 다음 시험 (실제 시각)
 function renderBigNext(st) {
   let h = '';
-  if (st.next) h = `다음 <b>${st.next.name}</b> · ${hm(st.next.p)} 예비령`;
-  else if (st.k === 'done') h = '오늘 시험이 모두 끝났습니다';
+  if (st.next) h = `<span class="n1">다음 <b>${st.next.name}</b></span><span class="n2">${hm(st.next.p)} 예비령 · ${EXAMS[st.next.i].start} 시작</span>`;
+  else if (st.k === 'done') h = '<span class="n1">오늘 시험 끝</span><span class="n2">수고했습니다</span>';
   if ($('bcNext').innerHTML !== h) $('bcNext').innerHTML = h;
 }
 // 출석 안내가 없을 때 그 칸에 '시계 보는 법'. 맨 아래 한 줄은 지금 상황에 맞춰:
@@ -601,7 +613,7 @@ function render(t) {
   if (st.k === 'ready') {
     badge = '시험 준비'; bcls = 'b-ready';
     title = `${st.x.name} 영역`;
-    sub = `<b>${satHm(st.x, st.x.s)}</b> 시작 <small>(수능 시각)</small> · 휴대폰은 가방에`;
+    sub = `<b>${satHm(st.x, st.x.s)}</b> 시작 · 휴대폰은 가방에`;
   } else if (st.k === 'exam' || st.k === 'warn') {
     badge = '시험 중'; bcls = 'b-exam';
     title = `${st.x.name} 영역`;
