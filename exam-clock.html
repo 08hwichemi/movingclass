@@ -112,6 +112,16 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
 #guide .gn:empty{display:none}
 #guide .gn b{color:var(--ink)}
 
+/* 그날 하루 알림(QR) — '시계 보는 법' 자리에 (2026-10-23 모의고사 신청) */
+#notice{display:none;width:100%;height:94vh;border:.4vh solid var(--accent);background:var(--accent);border-radius:2.4vh;padding:3vh 1.2vw;
+  flex-direction:column;align-items:center;justify-content:space-evenly;text-align:center;overflow:hidden}
+#notice.on{display:flex}
+#notice .nt{font-size:min(8vh,3.6vw);font-weight:900;color:#06263A;line-height:1.15;word-break:keep-all}
+#notice .nq{background:#fff;border-radius:1.6vh;padding:min(2.4vh,1.1vw);width:min(56vh,19vw);aspect-ratio:1}
+#notice .nq svg{display:block;width:100%;height:100%}
+#notice .ns{font-size:min(4.8vh,2.2vw);font-weight:800;color:#06263A;line-height:1.35;word-break:keep-all}
+#notice .nu{font-size:min(2.8vh,1.25vw);font-weight:700;color:#0B4F72}
+
 /* 로그인 창 — 명단을 읽으려면 교직원 계정이 필요하다. 한 번 들어가면 기기에 남는다 */
 #login{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.7);z-index:10}
 #login.on{display:flex}
@@ -229,6 +239,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
       <div class="gn" id="guideNote"></div>
       </div>
     </div>
+    <div id="notice"><div class="nt" id="ntTitle"></div><div class="nq" id="ntQr"></div><div class="ns" id="ntSub"></div><div class="nu" id="ntUrl"></div></div>
     <div id="attend">
       <div class="ic">📱</div>
       <div class="p" id="attendPeriod"></div>
@@ -300,7 +311,11 @@ const EVERY = 30;          // 그 뒤 몇 초마다
 const NAMES_MAX = 30;      // 이 인원 이하일 때만 이름을 띄운다 (세 줄에 30명까지 들어간다). 넘으면 숫자와 안내만
 
 const ENDED_SHOW = 60;     // 종료 문구를 몇 초 띄울지
-const YEBI_MIN = 10;       // 예비령: 시작 몇 분 전. 이때부터 시험이 끝날 때까지만 아날로그 수능 시계가 나온다
+const YEBI_MIN = 10;
+// 그날 하루만 띄우는 알림(QR). date 가 오늘이면 오른쪽 칸('시계 보는 법' 자리)에 대신 나온다 — 출석 안내 20분이 먼저.
+// qr 은 url 을 미리 그린 SVG(node qrcode, margin 0). 날짜가 지나면 저절로 안 나온다. 끝나면 비워 둘 것(null).
+const NOTICE = { date: '2026-10-23', title: '모의고사 신청', sub: '휴대폰 카메라로 찍어<br>신청하세요', url: 'forms.gle/Yw3rVdXp8nPV8quh6',
+  qr: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" shape-rendering="crispEdges"><path fill="#FFFFFF" d="M0 0h29v29H0z"/><path stroke="#000000" d="M0 0.5h7m1 0h2m1 0h2m2 0h2m3 0h1m1 0h7M0 1.5h1m5 0h1m1 0h2m4 0h2m2 0h1m1 0h1m1 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m2 0h2m1 0h4m6 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h1m2 0h1m5 0h1m2 0h1m1 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m3 0h2m1 0h1m3 0h1m1 0h1m2 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m2 0h1m1 0h1m2 0h1m1 0h1m1 0h3m1 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h2m1 0h7m1 0h2M0 8.5h1m1 0h2m1 0h3m1 0h1m1 0h1m1 0h2m3 0h3m1 0h1m2 0h1m1 0h2M0 9.5h3m1 0h1m2 0h5m5 0h1m1 0h1m2 0h3m3 0h1M2 10.5h1m1 0h1m1 0h1m3 0h3m1 0h1m2 0h1m8 0h2M0 11.5h1m1 0h2m3 0h4m1 0h3m1 0h1m3 0h2m1 0h2m3 0h1M0 12.5h7m1 0h1m2 0h1m5 0h1m2 0h2m3 0h2M2 13.5h2m1 0h1m1 0h1m3 0h3m1 0h5m2 0h1m3 0h3M0 14.5h1m1 0h2m1 0h2m3 0h3m1 0h1m4 0h3m2 0h1m1 0h3M1 15.5h5m1 0h4m2 0h1m1 0h2m1 0h1m2 0h2m1 0h1m2 0h1M0 16.5h1m1 0h1m1 0h1m1 0h2m2 0h1m5 0h1m2 0h1m1 0h1m2 0h2m1 0h1M1 17.5h1m1 0h1m1 0h1m1 0h1m1 0h1m2 0h2m1 0h1m1 0h4m2 0h1m1 0h3M0 18.5h1m2 0h6m6 0h2m1 0h1m1 0h1m2 0h1m2 0h1M5 19.5h1m1 0h1m1 0h2m1 0h1m4 0h1m1 0h1m1 0h2m1 0h1m1 0h1M1 20.5h2m1 0h1m1 0h3m2 0h1m1 0h1m3 0h2m1 0h7M8 21.5h1m2 0h4m1 0h3m1 0h1m3 0h5M0 22.5h7m1 0h3m2 0h1m4 0h3m1 0h1m1 0h2m1 0h1M0 23.5h1m5 0h1m1 0h5m3 0h1m2 0h2m3 0h2m1 0h1M0 24.5h1m1 0h3m1 0h1m2 0h1m1 0h2m1 0h1m1 0h1m3 0h5m1 0h2M0 25.5h1m1 0h3m1 0h1m1 0h3m3 0h2m1 0h5m1 0h3m2 0h1M0 26.5h1m1 0h3m1 0h1m1 0h6m2 0h1m6 0h1m2 0h1m1 0h1M0 27.5h1m5 0h1m3 0h2m2 0h1m1 0h1m1 0h1m1 0h1m1 0h1m2 0h1m1 0h1M0 28.5h7m1 0h3m1 0h2m2 0h5m6 0h1"/></svg>' };       // 예비령: 시작 몇 분 전. 이때부터 시험이 끝날 때까지만 아날로그 수능 시계가 나온다
 const WARN_BEFORE = 600;   // 종료 몇 초 전부터 노란색 + 예비 종
 /* ═════════════════════════════════════════════════════════════ */
 
@@ -592,7 +607,12 @@ function renderBigNext(st) {
 }
 // 출석 안내가 없을 때 그 칸에 '시계 보는 법'. 맨 아래 한 줄은 지금 상황에 맞춰:
 //   휴식 중 → 다음 예비령에 수능 시계가 몇 시로 나오는지 (시험 중에는 없음 — 사용자: 필요 없다)
+const noticeToday = () => !!(NOTICE && NOTICE.date === dateStr(nowDate()));
 function renderGuide(t, st, on) {
+  const nt = noticeToday();
+  $('notice').classList.toggle('on', on && nt);
+  if (nt && !$('ntQr').innerHTML) { $('ntTitle').textContent = NOTICE.title; $('ntQr').innerHTML = NOTICE.qr; $('ntSub').innerHTML = NOTICE.sub; $('ntUrl').textContent = NOTICE.url; }
+  if (nt) on = false;   // 알림이 있는 날은 '시계 보는 법' 대신
   $('guide').classList.toggle('on', on && st.k !== 'done');
   if (!on) return;
   let note = '';
